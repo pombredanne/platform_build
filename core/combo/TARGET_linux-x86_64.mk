@@ -28,6 +28,8 @@ else
 TARGET_GCC_VERSION := $(TARGET_GCC_VERSION_EXP)
 endif
 
+TARGET_IS_64_BIT := true
+
 # Include the arch-variant-specific configuration file.
 # Its role is to define various ARCH_X86_HAVE_XXX feature macros,
 # plus initial values for TARGET_GLOBAL_CFLAGS
@@ -110,8 +112,8 @@ ifneq ($(CUSTOM_KERNEL_HEADERS),)
     KERNEL_HEADERS_COMMON := $(CUSTOM_KERNEL_HEADERS)
     KERNEL_HEADERS_ARCH   := $(CUSTOM_KERNEL_HEADERS)
 else
-    KERNEL_HEADERS_COMMON := $(libc_root)/kernel/common
-    KERNEL_HEADERS_ARCH   := $(libc_root)/kernel/arch-$(TARGET_ARCH)
+    KERNEL_HEADERS_COMMON := $(libc_root)/kernel/uapi
+    KERNEL_HEADERS_ARCH   := $(libc_root)/kernel/uapi/asm-x86 # x86 covers both x86 and x86_64.
 endif
 KERNEL_HEADERS := $(KERNEL_HEADERS_COMMON) $(KERNEL_HEADERS_ARCH)
 
@@ -138,13 +140,7 @@ android_config_h := $(call select-android-config-h,target_linux-x86)
 TARGET_ANDROID_CONFIG_CFLAGS := -include $(android_config_h) -I $(dir $(android_config_h))
 TARGET_GLOBAL_CFLAGS += $(TARGET_ANDROID_CONFIG_CFLAGS)
 
-# XXX: Not sure this is still needed. Must check with our toolchains.
-TARGET_GLOBAL_CPPFLAGS += \
-			-fno-use-cxa-atexit
-
-TARGET_GLOBAL_CFLAGS += $(arch_variant_cflags) \
-			-mstackrealign \
-			-mfpmath=sse
+TARGET_GLOBAL_CFLAGS += $(arch_variant_cflags)
 
 ifeq ($(ARCH_X86_HAVE_SSSE3),true)   # yes, really SSSE3, not SSE3!
     TARGET_GLOBAL_CFLAGS += -DUSE_SSSE3 -mssse3
@@ -164,19 +160,6 @@ endif
 ifeq ($(ARCH_X86_HAVE_AES_NI),true)
     TARGET_GLOBAL_CFLAGS += -maes
 endif
-
-# XXX: This flag is probably redundant. I believe our toolchain always sets
-# it by default. Consider for removal.
-#
-TARGET_GLOBAL_CFLAGS += -mbionic
-
-# XXX: This flag is probably redundant. The macro should be defined by our
-# toolchain binaries automatically (as a compiler built-in).
-# Check with: $BINPREFIX-gcc -dM -E < /dev/null
-#
-# Consider for removal.
-#
-TARGET_GLOBAL_CFLAGS += -D__ANDROID__
 
 TARGET_GLOBAL_LDFLAGS += -m64
 
